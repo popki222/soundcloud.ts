@@ -59,7 +59,7 @@ export class Users {
             response = await this.api.getURL(url.origin + url.pathname, params)
             nextHref = response.next_href
         }
-        return tracks
+        return {tracks, nextHref}
     }
 
     /**
