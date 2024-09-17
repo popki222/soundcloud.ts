@@ -42,24 +42,36 @@ export class Users {
         }
         return response.collection as SoundcloudTrack[]
     }
-
+    
     /**
      * Gets all of a users liked tracks.
      */
     public likes = async (userResolvable: string | number, limit?: number) => {
         const userID = await this.resolve.get(userResolvable)
-        let response = await this.api.getV2(`/users/${userID}/likes`, {limit: 50, offset: 0}) as any
-        const tracks: SoundcloudTrack[] = []
+        let response = await this.api.getV2(`/users/${userID}/likes`, {limit: 200, offset: 0}) as any
+        let tracks = []
         let nextHref = response.next_href
-        while (nextHref && (!limit || tracks.length < limit)) {
-            tracks.push(...response.collection.map((r: any) => r.track))
+        let hrefList = []
+        tracks.push(...response.collection
+            .filter((r: any) => r.track && r.track.title)
+            .map((r: any) => r.track)
+        );
+        while (nextHref) {
+            hrefList.push(nextHref)
             const url = new URL(nextHref)
             const params = {}
             url.searchParams.forEach((value, key) => (params[key] = value))
-            response = await this.api.getURL(url.origin + url.pathname, params)
-            nextHref = response.next_href
+            let responses = await this.api.getURL(url.origin + url.pathname, params) as any
+            responses = JSON.parse(responses)
+            nextHref = responses.next_href
+            response = responses
+            tracks.push(...response.collection
+                .filter((r: any) => r.track && r.track.title)
+                .map((r: any) => r.track)
+            );
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        return {tracks, nextHref}
+        return tracks
     }
 
     /**
