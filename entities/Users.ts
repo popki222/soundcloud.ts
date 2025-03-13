@@ -48,14 +48,32 @@ export class Users {
      */
     public likes = async (userResolvable: string | number, limit?: number) => {
         const userID = await this.resolve.get(userResolvable)
-        let response = await this.api.getV2(`/users/${userID}/likes`, {limit: 200, offset: 0}) as any
+        let response = await this.api.getV2(`/users/${userID}/likes`, {limit: 50, offset: 0}) as any
         let tracks = []
         let nextHref = response.next_href
         let hrefList = []
-        tracks.push(...response.collection
-            .filter((r: any) => r.track && r.track.title)
-            .map((r: any) => r.track)
+        let baseTimestamp = new Date();
+        let microseconds = 0;
+
+        tracks.push(
+            ...response.collection
+                .filter((r: any) => r.track && r.track.title)
+                .map((r: any) => {
+                    microseconds += 1;
+                    const newTime = new Date(baseTimestamp.getTime() + Math.floor(microseconds / 1000));
+                    const remainingMicroseconds = microseconds % 1000;
+                    const timestamp = `${newTime.toISOString().replace('T', ' ').replace('Z', '')}+00`.replace(
+                        /\.\d{3}/,
+                        `.${newTime.getMilliseconds().toString().padStart(3, '0')}${remainingMicroseconds.toString().padStart(3, '0')}`
+                    );
+                    return {
+                        ...r.track,
+                        timestamp,
+                    };
+                })
         );
+
+
         while (nextHref) {
             hrefList.push(nextHref)
             const url = new URL(nextHref)
@@ -65,11 +83,28 @@ export class Users {
             responses = JSON.parse(responses)
             nextHref = responses.next_href
             response = responses
-            tracks.push(...response.collection
-                .filter((r: any) => r.track && r.track.title)
-                .map((r: any) => r.track)
+            let baseTimestamp = new Date();
+            let microseconds = 0;
+
+            tracks.push(
+                ...response.collection
+                    .filter((r: any) => r.track && r.track.title)
+                    .map((r: any) => {
+                        microseconds += 1;
+                        const newTime = new Date(baseTimestamp.getTime() + Math.floor(microseconds / 1000));
+                        const remainingMicroseconds = microseconds % 1000;
+                        const timestamp = `${newTime.toISOString().replace('T', ' ').replace('Z', '')}+00`.replace(
+                            /\.\d{3}/,
+                            `.${newTime.getMilliseconds().toString().padStart(3, '0')}${remainingMicroseconds.toString().padStart(3, '0')}`
+                        );
+                        return {
+                            ...r.track,
+                            timestamp,
+                        };
+                    })
             );
-            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         return tracks
     }

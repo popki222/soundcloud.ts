@@ -75,6 +75,7 @@ export interface SoundcloudTrack {
     permalink_url: string
     user: SoundcloudUser
     playback_count: number
+    timestamp: string | null
 }
 export interface SoundcloudTrackSearch extends SoundcloudSearch {
     collection: SoundcloudTrack[]
